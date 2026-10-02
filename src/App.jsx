@@ -1,10 +1,10 @@
 import { useMemo, useRef, useState } from 'react'
 
 const initialUser = {
-  firstName: 'Alex',
-  lastName: 'Morgan',
-  dob: '2000-05-15',
-  nickname: 'Alex',
+  firstName: '',
+  lastName: '',
+  dob: '',
+  nickname: '',
   companionName: 'Nova',
   companionTitle: 'Your Companion',
 }
@@ -20,82 +20,112 @@ const workoutPlan = [
 ]
 
 const sampleMeals = [
-  { name: 'Salmon rice bowl', calories: 620, image: 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80' },
+  { name: 'Salmon rice bowl', calories: 640, image: 'https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=900&q=80' },
   { name: 'Protein smoothie', calories: 340, image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=900&q=80' },
 ]
 
-const weekGoals = {
-  steps: 70000,
-  calories: 15400,
-}
+const stepGoal = 10000
+const calorieGoal = 2200
 
 function App() {
   const [user, setUser] = useState(initialUser)
   const [showSignup, setShowSignup] = useState(true)
-  const [steps, setSteps] = useState(6400)
-  const [progressValue, setProgressValue] = useState(64)
+  const [steps, setSteps] = useState(3800)
   const [meals, setMeals] = useState(sampleMeals)
   const fileInputRef = useRef(null)
 
-  const stepGoal = 10000
-  const calorieGoal = 2200
   const caloriesEaten = meals.reduce((sum, meal) => sum + Number(meal.calories || 0), 0)
-  const stepsRemaining = Math.max(stepGoal - steps, 0)
-  const energy = Math.min(100, Math.round((steps / stepGoal) * 100))
+  const remainingCalories = Math.max(calorieGoal - caloriesEaten, 0)
+  const remainingSteps = Math.max(stepGoal - steps, 0)
+  const energy = Math.min(100, Math.max(0, Math.round((steps / stepGoal) * 100)))
 
   const companionMood = useMemo(() => {
-    if (energy >= 85) return { label: 'Happy', emoji: '😊', message: 'I feel energized and ready for another win!' }
-    if (energy >= 60) return { label: 'Content', emoji: '🙂', message: 'You are doing great. Keep it going.' }
-    if (energy >= 35) return { label: 'Tired', emoji: '😴', message: 'I need a little more movement from you today.' }
-    return { label: 'Low energy', emoji: '😵', message: 'Let’s get moving and bring me back to life!' }
-  }, [energy])
+    if (energy >= 80) {
+      return {
+        label: 'Happy',
+        emoji: '😊',
+        message: `${user.companionName} is full of energy and cheering you on.`,
+      }
+    }
 
-  const handleSignupChange = (e) => {
-    const { name, value } = e.target
+    if (energy >= 50) {
+      return {
+        label: 'Motivated',
+        emoji: '🙂',
+        message: `${user.companionName} is feeling stronger. Keep the streak going.`,
+      }
+    }
+
+    if (energy >= 25) {
+      return {
+        label: 'Low energy',
+        emoji: '😴',
+        message: `${user.companionName} needs a little more movement today.`,
+      }
+    }
+
+    return {
+      label: 'Exhausted',
+      emoji: '😵',
+      message: `${user.companionName} is tired. Let’s get moving and bring the energy back.`,
+    }
+  }, [energy, user.companionName])
+
+  const handleSignupChange = (event) => {
+    const { name, value } = event.target
     setUser((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleSignupSubmit = (e) => {
-    e.preventDefault()
+  const handleSignupSubmit = (event) => {
+    event.preventDefault()
+
+    if (!user.firstName || !user.lastName || !user.nickname || !user.dob) {
+      return
+    }
+
     setShowSignup(false)
   }
 
-  const handleStepChange = (e) => {
-    const next = Number(e.target.value) || 0
-    setSteps(next)
-    setProgressValue(Math.min(100, Math.round((next / stepGoal) * 100)))
+  const handleStepChange = (event) => {
+    const nextValue = Number(event.target.value) || 0
+    setSteps(nextValue)
   }
 
-  const handleMealUpload = (e) => {
-    const file = e.target.files?.[0]
+  const handleMealUpload = (event) => {
+    const file = event.target.files?.[0]
     if (!file) return
 
     const reader = new FileReader()
     reader.onload = () => {
-      const estimate = Math.max(280, Math.round(Math.random() * 700))
-      const foodName = file.name.replace(/\.[^/.]+$/, '').replace(/[-_]+/g, ' ')
+      const estimatedCalories = Math.max(220, Math.round(Math.random() * 850))
+      const cleanedName = file.name
+        .replace(/\.[^/.]+$/, '')
+        .replace(/[-_]+/g, ' ')
+        .trim()
+
       const newMeal = {
-        name: foodName || 'Fresh meal',
-        calories: estimate,
+        name: cleanedName || 'Fresh meal',
+        calories: estimatedCalories,
         image: reader.result,
       }
 
       setMeals((prev) => [newMeal, ...prev])
     }
     reader.readAsDataURL(file)
-    e.target.value = ''
+    event.target.value = ''
   }
 
   return (
-    <div className="app-shell">
+    <div className="tracker-app">
       <header className="topbar">
         <div className="brand-wrap">
-          <div className="brand-badge">T</div>
+          <div className="brand-mark">T</div>
           <div>
             <p className="eyebrow">Fitness coaching</p>
             <h1>Tracker App</h1>
           </div>
         </div>
+
         <nav className="nav">
           <a href="#home">Home</a>
           <a href="#dashboard">Dashboard</a>
@@ -104,101 +134,144 @@ function App() {
         </nav>
       </header>
 
-      <main className="page">
-        <section id="home" className="hero card">
+      <main className="page-shell">
+        <section id="home" className="hero card-panel">
           <div className="hero-copy">
             <span className="pill">Your daily momentum starts here</span>
-            <h2>Build a healthier routine with your personal wellness coach.</h2>
+            <h2>Build a stronger, healthier life with your personal wellness coach.</h2>
             <p>
-              A motivating lifestyle app for everyday people who want to move more, eat better,
-              and feel stronger every day.
+              Tracker App keeps you moving, helps you eat better, and turns your daily habit
+              into a feeling of progress you can actually stick with.
             </p>
+
             <div className="hero-actions">
-              <button className="primary">Start your journey</button>
-              <button className="secondary">See the plan</button>
+              <button className="primary-btn">Start your journey</button>
+              <button className="secondary-btn">See the plan</button>
             </div>
-            <ul className="hero-points">
+
+            <ul className="feature-list">
               <li>Daily step goals</li>
-              <li>Meal tracking with photo calorie estimates</li>
-              <li>Coach-style progress overview</li>
+              <li>Meal tracking with food photos</li>
+              <li>Companion motivation and energy</li>
             </ul>
           </div>
 
-          <div className="hero-panel">
-            <div className="mini-card stat-card">
+          <div className="hero-side">
+            <div className="mini-stat card-soft">
               <span>Steps today</span>
               <strong>{steps.toLocaleString()}</strong>
               <small>Goal: {stepGoal.toLocaleString()}</small>
             </div>
-            <div className="mini-card companion-card">
+
+            <div className="mini-companion card-soft">
               <div className="companion-avatar">{companionMood.emoji}</div>
               <div>
                 <p>{user.companionTitle}</p>
-                <h3>{user.companionName}</h3>
+                <h3>{user.companionName || 'Nova'}</h3>
                 <small>{companionMood.label}</small>
               </div>
             </div>
           </div>
         </section>
 
-        {showSignup ? (
-          <section className="signup card">
-            <div className="section-heading">
+        {showSignup && (
+          <section className="signup card-panel">
+            <div className="section-header">
               <div>
                 <p className="eyebrow">Create your profile</p>
                 <h3>Welcome to Tracker App</h3>
               </div>
             </div>
 
-            <form onSubmit={handleSignupSubmit} className="signup-form">
+            <form className="signup-form" onSubmit={handleSignupSubmit}>
               <div className="field-grid">
                 <label>
                   First name
-                  <input name="firstName" value={user.firstName} onChange={handleSignupChange} placeholder="First name" />
+                  <input
+                    type="text"
+                    name="firstName"
+                    value={user.firstName}
+                    onChange={handleSignupChange}
+                    placeholder="First name"
+                  />
                 </label>
+
                 <label>
                   Last name
-                  <input name="lastName" value={user.lastName} onChange={handleSignupChange} placeholder="Last name" />
+                  <input
+                    type="text"
+                    name="lastName"
+                    value={user.lastName}
+                    onChange={handleSignupChange}
+                    placeholder="Last name"
+                  />
                 </label>
+
                 <label>
                   Date of birth
-                  <input type="date" name="dob" value={user.dob} onChange={handleSignupChange} />
+                  <input
+                    type="date"
+                    name="dob"
+                    value={user.dob}
+                    onChange={handleSignupChange}
+                  />
                 </label>
+
                 <label>
                   Nickname
-                  <input name="nickname" value={user.nickname} onChange={handleSignupChange} placeholder="What should we call you?" />
+                  <input
+                    type="text"
+                    name="nickname"
+                    value={user.nickname}
+                    onChange={handleSignupChange}
+                    placeholder="What should we call you?"
+                  />
                 </label>
+
                 <label>
                   Companion name
-                  <input name="companionName" value={user.companionName} onChange={handleSignupChange} placeholder="Name your companion" />
+                  <input
+                    type="text"
+                    name="companionName"
+                    value={user.companionName}
+                    onChange={handleSignupChange}
+                    placeholder="Name your companion"
+                  />
                 </label>
+
                 <label>
                   Companion title
-                  <input name="companionTitle" value={user.companionTitle} onChange={handleSignupChange} placeholder="Your Companion" />
+                  <input
+                    type="text"
+                    name="companionTitle"
+                    value={user.companionTitle}
+                    onChange={handleSignupChange}
+                    placeholder="Your Companion"
+                  />
                 </label>
               </div>
 
-              <button className="primary submit-btn" type="submit">Create my account</button>
+              <button type="submit" className="primary-btn submit-btn">Create my account</button>
             </form>
           </section>
-        ) : null}
+        )}
 
         <section id="dashboard" className="dashboard-grid">
-          <div className="card dashboard-main">
-            <div className="section-heading">
+          <div className="card-panel dashboard-panel">
+            <div className="section-header">
               <div>
                 <p className="eyebrow">Your dashboard</p>
                 <h3>Hi {user.nickname || 'friend'}!</h3>
               </div>
-              <button className="secondary small">+ Add workout</button>
+              <button className="secondary-btn small-btn">+ Add workout</button>
             </div>
 
             <div className="energy-panel">
-              <div className="companion-figure">
-                <div className="mood-bubble">{companionMood.emoji}</div>
+              <div className="companion-summary">
+                <div className="mood-avatar">{companionMood.emoji}</div>
                 <div>
-                  <p>{user.companionTitle}</p>
-                  <h4>{user.companionName}</h4>
+                  <p>{user.companionTitle || 'Your Companion'}</p>
+                  <h4>{user.companionName || 'Nova'}</h4>
                 </div>
               </div>
 
@@ -218,13 +291,15 @@ function App() {
               <div className="stat-box">
                 <span>Steps</span>
                 <strong>{steps.toLocaleString()}</strong>
-                <small>{stepsRemaining.toLocaleString()} left</small>
+                <small>{remainingSteps.toLocaleString()} left</small>
               </div>
+
               <div className="stat-box">
                 <span>Calories</span>
                 <strong>{caloriesEaten}</strong>
-                <small>{calorieGoal - caloriesEaten} remaining</small>
+                <small>{remainingCalories} left</small>
               </div>
+
               <div className="stat-box">
                 <span>Workout</span>
                 <strong>3/5</strong>
@@ -232,19 +307,22 @@ function App() {
               </div>
             </div>
 
-            <div className="steps-card">
+            <div className="step-card">
               <div className="meter-head">
                 <span>Step goal progress</span>
-                <strong>{progressValue}%</strong>
+                <strong>{Math.min(100, Math.round((steps / stepGoal) * 100))}%</strong>
               </div>
+
               <input
                 type="range"
                 min="0"
                 max={stepGoal}
+                step="100"
                 value={steps}
                 onChange={handleStepChange}
                 aria-label="Daily steps"
               />
+
               <div className="range-labels">
                 <small>0</small>
                 <small>{stepGoal.toLocaleString()} steps</small>
@@ -252,8 +330,8 @@ function App() {
             </div>
           </div>
 
-          <aside className="card side-panel">
-            <div className="section-heading tight">
+          <aside className="card-panel side-panel">
+            <div className="section-header tight">
               <div>
                 <p className="eyebrow">Workout overview</p>
                 <h3>Weekly plan</h3>
@@ -275,13 +353,15 @@ function App() {
         </section>
 
         <section id="meal-planner" className="meal-section">
-          <div className="card meals-card">
-            <div className="section-heading">
+          <div className="card-panel meal-panel">
+            <div className="section-header">
               <div>
                 <p className="eyebrow">Nutrition</p>
                 <h3>Meal planning</h3>
               </div>
-              <button className="secondary small" onClick={() => fileInputRef.current?.click()}>Add meal</button>
+              <button className="secondary-btn small-btn" onClick={() => fileInputRef.current?.click()}>
+                Add meal
+              </button>
               <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleMealUpload} />
             </div>
 
@@ -295,8 +375,8 @@ function App() {
                 <strong>{calorieGoal}</strong>
               </div>
               <div>
-                <span>Weekly goal</span>
-                <strong>{weekGoals.calories.toLocaleString()}</strong>
+                <span>Remaining</span>
+                <strong>{remainingCalories}</strong>
               </div>
             </div>
 
@@ -314,8 +394,8 @@ function App() {
           </div>
         </section>
 
-        <section id="profile" className="card profile-card">
-          <div className="section-heading">
+        <section id="profile" className="card-panel profile-card">
+          <div className="section-header">
             <div>
               <p className="eyebrow">Account</p>
               <h3>Profile & goals</h3>
@@ -324,11 +404,11 @@ function App() {
 
           <div className="profile-layout">
             <div className="profile-identity">
-              <div className="avatar-large">{user.nickname?.[0]?.toUpperCase() || 'A'}</div>
+              <div className="profile-avatar">{(user.nickname || 'A').charAt(0).toUpperCase()}</div>
               <div>
-                <h4>{user.firstName} {user.lastName}</h4>
-                <p>Nickname: {user.nickname}</p>
-                <p>Companion: {user.companionName}</p>
+                <h4>{user.firstName || 'Your'} {user.lastName || 'Name'}</h4>
+                <p>Nickname: {user.nickname || 'your nickname'}</p>
+                <p>Companion: {user.companionName || 'Nova'}</p>
               </div>
             </div>
 
@@ -339,10 +419,10 @@ function App() {
               </div>
               <div>
                 <span>Birth date</span>
-                <strong>{user.dob}</strong>
+                <strong>{user.dob || 'Not set yet'}</strong>
               </div>
               <div>
-                <span>Preferred coach energy</span>
+                <span>Coach style</span>
                 <strong>Encouraging & realistic</strong>
               </div>
             </div>
